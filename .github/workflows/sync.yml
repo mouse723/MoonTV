@@ -2,7 +2,7 @@ name: Upstream Sync
 
 on:
   schedule:
-    - cron: "0 */6 * * *"
+    - cron: "0 */12 * * *"  # 每 6 小時執行一次
   workflow_dispatch:
 
 permissions:
@@ -16,20 +16,15 @@ jobs:
       - name: Checkout target repo
         uses: actions/checkout@v4
 
-      - name: Sync upstream changes
-        id: sync
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
-        with:
-          upstream_sync_repo: senshinya/MoonTV
-          upstream_sync_branch: main
-          target_sync_branch: main
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Sync check
-        if: steps.sync.outcome == 'failure'
+      - name: Manual sync with allow-unrelated-histories
         run: |
-          echo "[Error] Sync failed. Please check upstream changes or token permissions."
-          exit 1
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/senshinya/MoonTV.git
+          git fetch upstream
+          git checkout main
+          git pull upstream main --allow-unrelated-histories
+          git push origin main
 
       - name: Delete workflow runs
         if: success()
@@ -39,4 +34,3 @@ jobs:
           repository: ${{ github.repository }}
           retain_days: 0
           keep_minimum_runs: 2
-
